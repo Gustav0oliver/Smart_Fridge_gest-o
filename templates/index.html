@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Fridge - Gestão</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- SheetJS (for Excel export) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #fdba74; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #f97316; }
+        .page { display: none; }
+        .page.active { display: block; }
+    </style>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': {
+                            '50': '#fff7ed', '100': '#ffedd5', '200': '#fed7aa', '300': '#fdba74', '400': '#fb923c',
+                            '500': '#f97316', '600': '#ea580c', '700': '#c2410c', '800': '#9a3412', '900': '#7c2d12', '950': '#431407',
+                        },
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-slate-900 text-slate-300">
+
+    <!-- Auth Screen -->
+    <div id="auth-screen" class="flex items-center justify-center min-h-screen bg-slate-900">
+        <div class="w-full max-w-md p-8 space-y-6 bg-slate-800 rounded-lg shadow-lg">
+            <div class="text-center">
+                <h1 class="text-3xl font-bold text-white">Smart Fridge</h1>
+                <p class="text-primary-400">Bem-vindo ao seu painel de gestão</p>
+            </div>
+            <div id="auth-container">
+                <div class="space-y-4">
+                    <div>
+                        <label for="email" class="text-sm font-medium text-slate-300">Email</label>
+                        <input type="email" id="email" class="w-full px-3 py-2 mt-1 text-white bg-slate-700 border border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    </div>
+                    <div>
+                        <label for="password" class="text-sm font-medium text-slate-300">Senha</label>
+                        <input type="password" id="password" class="w-full px-3 py-2 mt-1 text-white bg-slate-700 border border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    </div>
+                </div>
+                <div class="flex flex-col gap-4 mt-6">
+                    <button id="login-btn" class="w-full py-2 font-semibold text-white bg-primary-600 rounded-md hover:bg-primary-700 transition duration-300">Entrar</button>
+                    <button id="register-btn" class="w-full py-2 font-semibold text-primary-500 bg-transparent border border-primary-500 rounded-md hover:bg-primary-500 hover:text-white transition duration-300">Registrar (primeiro usuário é Admin)</button>
+                </div>
+            </div>
+            <p id="auth-error" class="text-red-400 text-center text-sm h-4"></p>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="app-container" class="hidden">
+        <div class="flex h-screen bg-slate-900">
+            <!-- Sidebar -->
+            <aside class="w-64 flex-shrink-0 bg-slate-800 p-4 flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center gap-2 mb-8">
+                        <i data-lucide="fridge" class="text-primary-400 w-8 h-8"></i>
+                        <h1 class="text-2xl font-bold text-white">Smart Fridge</h1>
+                    </div>
+                    <nav id="sidebar-nav" class="space-y-2">
+                         <a href="#" data-page="dashboard" class="nav-link flex items-center gap-3 px-4 py-2 text-slate-300 rounded-lg hover:bg-slate-700 hover:text-white transition-colors"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></a>
+                        <a href="#" data-page="condominios" class="nav-link flex items-center gap-3 px-4 py-2 text-slate-300 rounded-lg hover:bg-slate-700 hover:text-white transition-colors"><i data-lucide="building-2"></i><span>Condomínios</span></a>
+                        <a href="#" data-page="produtos" class="nav-link flex items-center gap-3 px-4 py-2 text-slate-300 rounded-lg hover:bg-slate-700 hover:text-white transition-colors"><i data-lucide="package"></i><span>Produtos</span></a>
+                        <a href="#" data-page="estoque" class="nav-link flex items-center gap-3 px-4 py-2 text-slate-300 rounded-lg hover:bg-slate-700 hover:text-white transition-colors"><i data-lucide="boxes"></i><span>Gestão de Estoque</span></a>
+                        <a href="#" data-page="vendas" class="nav-link flex items-center gap-3 px-4 py-2 text-slate-300 rounded-lg hover:bg-slate-700 hover:text-white transition-colors"><i data-lucide="shopping-cart"></i><span>Registrar Vendas</span></a>
+                        <a href="#" data-page="reposicao" class="nav-link flex items-center gap-3 px-4 py-2 text-slate-300 rounded-lg hover:bg-slate-700 hover:text-white transition-colors"><i data-lucide="truck"></i><span>Necessita Reposição</span></a>
+                        <a href="#" data-page="financeiro" class="nav-link flex items-center gap-3 px-4 py-2 text-slate-300 rounded-lg hover:bg-slate-700 hover:text-white transition-colors"><i data-lucide="bar-chart-2"></i><span>Financeiro</span></a>
+                        <a href="#" data-page="caixa" class="nav-link flex items-center gap-3 px-4 py-2 text-slate-300 rounded-lg hover:bg-slate-700 hover:text-white transition-colors"><i data-lucide="safe"></i><span>Caixa Central</span></a>
+                        <a href="#" data-page="relatorios" class="nav-link flex items-center gap-3 px-4 py-2 text-slate-300 rounded-lg hover:bg-slate-700 hover:text-white transition-colors"><i data-lucide="file-down"></i><span>Relatórios</span></a>
+                    </nav>
+                </div>
+                <div>
+                     <div class="text-center text-xs text-slate-500 mb-2">Logado como: <span id="user-email-display" class="font-semibold"></span></div>
+                     <button id="logout-btn" class="w-full flex items-center justify-center gap-3 px-4 py-2 text-slate-300 rounded-lg hover:bg-red-500 hover:text-white transition-colors"><i data-lucide="log-out"></i><span>Sair</span></button>
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="flex-1 p-6 lg:p-8 overflow-y-auto">
+                <!-- Page: Dashboard -->
+                <div id="dashboard-page" class="page">
+                    <h2 class="text-3xl font-bold text-white mb-6">Dashboard</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                       <div class="bg-slate-800 p-5 rounded-lg"><h3 class="text-slate-400 text-sm">Lucro Líquido (Geral)</h3><p id="dashboard-lucro" class="text-3xl font-bold text-green-400">R$ 0,00</p></div>
+                       <div class="bg-slate-800 p-5 rounded-lg"><h3 class="text-slate-400 text-sm">Vendas (Geral)</h3><p id="dashboard-vendas" class="text-3xl font-bold text-primary-400">0</p></div>
+                       <div class="bg-slate-800 p-5 rounded-lg"><h3 class="text-slate-400 text-sm">Condomínios Ativos</h3><p id="dashboard-condos" class="text-3xl font-bold text-white">0</p></div>
+                       <div class="bg-slate-800 p-5 rounded-lg"><h3 class="text-slate-400 text-sm">Itens para Repor</h3><p id="dashboard-reposicao" class="text-3xl font-bold text-red-500">0</p></div>
+                    </div>
+                </div>
+
+                <!-- Page: Condominios -->
+                <div id="condominios-page" class="page">
+                    <div class="flex justify-between items-center mb-6"><h2 class="text-3xl font-bold text-white">Gestão de Condomínios</h2><button id="add-condominio-btn" class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 flex items-center gap-2"><i data-lucide="plus"></i> Adicionar</button></div>
+                    <div id="condominios-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+                </div>
+
+                <!-- Page: Produtos -->
+                <div id="produtos-page" class="page">
+                     <div class="flex justify-between items-center mb-6"><h2 class="text-3xl font-bold text-white">Gestão de Produtos</h2><button id="add-produto-btn" class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 flex items-center gap-2"><i data-lucide="plus"></i> Adicionar</button></div>
+                    <div class="bg-slate-800 rounded-lg overflow-hidden"><table class="w-full text-left"><thead class="bg-slate-700"><tr><th class="p-4 text-sm font-semibold text-white">Produto</th><th class="p-4 text-sm font-semibold text-white">Preço de Custo</th><th class="p-4 text-sm font-semibold text-white">Preço de Venda</th><th class="p-4 text-sm font-semibold text-white">Ações</th></tr></thead><tbody id="produtos-table-body"></tbody></table></div>
+                </div>
+                
+                <!-- Page: Gestão de Estoque -->
+                <div id="estoque-page" class="page">
+                    <h2 class="text-3xl font-bold text-white mb-6">Gestão de Estoque</h2>
+                    <div class="mb-6"><label for="estoque-condo-select" class="block text-sm font-medium text-slate-300 mb-2">Selecione o Condomínio</label><select id="estoque-condo-select" class="w-full max-w-md bg-slate-700 border border-slate-600 rounded-md p-2 text-white focus:outline-none focus:ring-2 focus:ring-primary-500"></select></div>
+                    <div id="estoque-details" class="hidden"><div class="flex justify-between items-center mb-4"><h3 class="text-2xl font-semibold text-white">Estoque do Condomínio: <span id="estoque-condo-name"></span></h3><button id="add-produto-estoque-btn" class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 flex items-center gap-2"><i data-lucide="plus"></i> Adicionar Produto ao Estoque</button></div><div class="bg-slate-800 rounded-lg overflow-hidden"><table class="w-full text-left"><thead class="bg-slate-700"><tr><th class="p-4 text-sm font-semibold text-white">Produto</th><th class="p-4 text-sm font-semibold text-white">Quantidade</th><th class="p-4 text-sm font-semibold text-white">Nível Crítico</th><th class="p-4 text-sm font-semibold text-white">Ações</th></tr></thead><tbody id="estoque-table-body"></tbody></table></div></div>
+                </div>
+
+                <!-- Page: Registrar Vendas -->
+                <div id="vendas-page" class="page">
+                     <h2 class="text-3xl font-bold text-white mb-6">Registrar Venda</h2>
+                     <div class="max-w-xl mx-auto bg-slate-800 p-8 rounded-lg"><div class="space-y-4"><div><label for="venda-condo-select" class="block text-sm font-medium text-slate-300 mb-2">Condomínio</label><select id="venda-condo-select" class="w-full bg-slate-700 border border-slate-600 rounded-md p-2 text-white focus:outline-none focus:ring-2 focus:ring-primary-500"></select></div><div><label for="venda-produto-select" class="block text-sm font-medium text-slate-300 mb-2">Produto</label><select id="venda-produto-select" class="w-full bg-slate-700 border border-slate-600 rounded-md p-2 text-white focus:outline-none focus:ring-2 focus:ring-primary-500" disabled></select></div><div><label for="venda-quantidade-input" class="block text-sm font-medium text-slate-300 mb-2">Quantidade</label><input type="number" id="venda-quantidade-input" min="1" value="1" class="w-full bg-slate-700 border border-slate-600 rounded-md p-2 text-white focus:outline-none focus:ring-2 focus:ring-primary-500"></div><button id="registrar-venda-btn" class="w-full bg-primary-600 text-white px-4 py-3 rounded-lg hover:bg-primary-700 flex items-center justify-center gap-2 text-lg font-semibold"><i data-lucide="shopping-cart"></i> Registrar Venda</button></div></div>
+                </div>
+                
+                <!-- Page: Reposição -->
+                <div id="reposicao-page" class="page">
+                    <h2 class="text-3xl font-bold text-white mb-6">Reposição Necessária</h2>
+                    <div id="reposicao-list" class="space-y-4"></div>
+                </div>
+
+                <!-- Page: Financeiro -->
+                <div id="financeiro-page" class="page">
+                    <h2 class="text-3xl font-bold text-white mb-6">Análise Financeira</h2>
+                    <div class="flex gap-4 mb-6"><div class="flex-1"><label for="financeiro-condo-select" class="block text-sm font-medium text-slate-300 mb-2">Condomínio</label><select id="financeiro-condo-select" class="w-full bg-slate-700 border border-slate-600 rounded-md p-2 text-white focus:outline-none focus:ring-2 focus:ring-primary-500"></select></div></div>
+                    <div id="financeiro-content" class="hidden">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+                            <div class="bg-slate-800 p-4 rounded-lg"><h3 class="text-slate-400 text-sm">Investimento a Recuperar</h3><p id="fin-investimento-restante" class="text-xl font-bold text-white">R$ 0,00</p><p id="fin-investimento-original" class="text-xs text-slate-500">de R$ 0,00</p></div>
+                            <div class="bg-slate-800 p-4 rounded-lg"><h3 class="text-slate-400 text-sm">Faturamento (Vendas)</h3><p id="fin-faturamento" class="text-xl font-bold text-primary-400">R$ 0,00</p></div>
+                            <div class="bg-slate-800 p-4 rounded-lg"><div class="flex justify-between items-center"><h3 class="text-slate-400 text-sm">Despesas Fixas</h3><button onclick="editarDespesas()" id="edit-despesas-btn" class="text-slate-400 hover:text-white" title="Editar Despesas Fixas"><i data-lucide="edit" class="w-4 h-4"></i></button></div><p id="fin-despesas" class="text-xl font-bold text-red-400">R$ 0,00</p><div class="w-full bg-slate-700 rounded-full h-2.5 mt-2"><div id="fin-despesas-progress" class="bg-amber-500 h-2.5 rounded-full" style="width: 0%"></div></div><p id="fin-despesas-status" class="text-xs text-slate-500 text-right mt-1"></p></div>
+                            <div class="bg-slate-800 p-4 rounded-lg"><h3 class="text-slate-400 text-sm">Lucro Líquido</h3><p id="fin-lucro-liquido" class="text-xl font-bold text-green-400">R$ 0,00</p></div>
+                            <div class="bg-slate-800 p-4 rounded-lg"><h3 class="text-slate-400 text-sm">Comissão Síndico (2%)</h3><p id="fin-comissao" class="text-xl font-bold text-cyan-400">R$ 0,00</p></div>
+                        </div>
+                        <div class="bg-slate-800 p-4 rounded-lg"><canvas id="financeiro-chart"></canvas></div>
+                    </div>
+                </div>
+
+                <!-- Page: Caixa Central -->
+                <div id="caixa-page" class="page">
+                    <div class="flex justify-between items-center mb-6"><h2 class="text-3xl font-bold text-white">Caixa Central</h2><button id="add-retirada-btn" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 flex items-center gap-2"><i data-lucide="arrow-down-circle"></i> Fazer Retirada / Saída</button></div>
+                    <div class="bg-slate-800 p-5 rounded-lg mb-6"><h3 class="text-slate-400 text-lg">Saldo Atual da Empresa</h3><p id="caixa-saldo-atual" class="text-4xl font-bold text-green-400">R$ 0,00</p></div>
+                    <div class="bg-slate-800 rounded-lg overflow-hidden"><h3 class="text-xl font-bold text-white p-4">Histórico de Transações</h3><table class="w-full text-left"><thead class="bg-slate-700"><tr><th class="p-4 text-sm font-semibold text-white">Data</th><th class="p-4 text-sm font-semibold text-white">Tipo</th><th class="p-4 text-sm font-semibold text-white">Descrição</th><th class="p-4 text-sm font-semibold text-white">Responsável</th><th class="p-4 text-sm font-semibold text-white text-right">Valor</th></tr></thead><tbody id="caixa-transacoes-table"></tbody></table></div>
+                </div>
+
+                <!-- Page: Relatórios -->
+                <div id="relatorios-page" class="page">
+                    <h2 class="text-3xl font-bold text-white mb-6">Gerar Relatórios</h2>
+                    <div class="max-w-4xl mx-auto bg-slate-800 p-8 rounded-lg mb-6">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div><label for="relatorio-data-inicio" class="block text-sm font-medium text-slate-300 mb-2">Data de Início</label><input type="date" id="relatorio-data-inicio" class="w-full bg-slate-700 border border-slate-600 rounded-md p-2 text-white focus:outline-none focus:ring-2 focus:ring-primary-500"></div>
+                            <div><label for="relatorio-data-fim" class="block text-sm font-medium text-slate-300 mb-2">Data de Fim</label><input type="date" id="relatorio-data-fim" class="w-full bg-slate-700 border border-slate-600 rounded-md p-2 text-white focus:outline-none focus:ring-2 focus:ring-primary-500"></div>
+                            <div class="flex items-end"><button id="gerar-relatorio-btn" class="w-full bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 flex items-center justify-center gap-2 font-semibold"><i data-lucide="search"></i> Gerar Relatório</button></div>
+                        </div>
+                    </div>
+                    <div id="relatorio-resultados" class="hidden">
+                        <div class="flex justify-between items-center mb-4"><h3 class="text-xl font-bold text-white">Resultados</h3><button id="download-excel-btn" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2"><i data-lucide="file-down"></i> Baixar Excel</button></div>
+                        <div class="bg-slate-800 rounded-lg overflow-hidden"><table class="w-full text-left"><thead class="bg-slate-700"><tr><th class="p-4 text-sm font-semibold text-white">Data</th><th class="p-4 text-sm font-semibold text-white">Condomínio</th><th class="p-4 text-sm font-semibold text-white">Produto</th><th class="p-4 text-sm font-semibold text-white">Qtd</th><th class="p-4 text-sm font-semibold text-white text-right">Faturamento</th><th class="p-4 text-sm font-semibold text-white text-right">Lucro</th></tr></thead><tbody id="relatorios-table-body"></tbody></table></div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+    
+    <!-- Modal Container -->
+    <div id="modal-container" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4"></div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 space-y-2"></div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // ========== STATE AND UTILS ==========
+        const state = { currentUser: null, products: [], condos: [], financeChart: null, currentFinanceCondoId: null, relatorioData: [] };
+        const apiFetch = async (url, options = {}) => {
+            try {
+                const response = await fetch(url, options);
+                const errorData = await response.json().catch(() => null);
+                if (!response.ok) throw new Error(errorData?.error || 'Ocorreu um erro no servidor.');
+                return errorData;
+            } catch (error) {
+                console.error('API Fetch Error:', error);
+                showToast(error.message, 'error');
+                throw error;
+            }
+        };
+        const showToast = (message, type = 'success') => {
+            const container = document.getElementById('toast-container');
+            const toast = Object.assign(document.createElement('div'), {
+                className: `px-4 py-2 rounded-md text-white ${type === 'success' ? 'bg-green-500' : 'bg-red-500'} animate-pulse`,
+                textContent: message
+            });
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'transition-opacity', 'duration-500');
+                setTimeout(() => toast.remove(), 500);
+            }, 3000);
+        };
+        const showModal = (content) => {
+            const modalContainer = document.getElementById('modal-container');
+            modalContainer.innerHTML = content;
+            modalContainer.classList.remove('hidden');
+        };
+        const hideModal = () => document.getElementById('modal-container').classList.add('hidden');
+        window.hideModal = hideModal;
+        const formatCurrency = (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
+
+        // ========== AUTHENTICATION ==========
+        const authScreen = document.getElementById('auth-screen');
+        const appContainer = document.getElementById('app-container');
+        const handleLogin = async () => {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            document.getElementById('auth-error').textContent = '';
+            try {
+                const data = await apiFetch('/api/login', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password }),
+                });
+                state.currentUser = data.user;
+                initializeApp();
+            } catch (error) {
+                document.getElementById('auth-error').textContent = error.message;
+            }
+        };
+        const handleRegister = async () => {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            document.getElementById('auth-error').textContent = '';
+            try {
+                await apiFetch('/api/register', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password }),
+                });
+                showToast('Usuário registrado! Por favor, faça o login.');
+            } catch (error) {
+                document.getElementById('auth-error').textContent = error.message;
+            }
+        };
+        const handleLogout = () => {
+            state.currentUser = null;
+            authScreen.classList.remove('hidden');
+            appContainer.classList.add('hidden');
+            document.getElementById('email').value = '';
+            document.getElementById('password').value = '';
+        };
+
+        // ========== APP INITIALIZATION ==========
+        const initializeApp = () => {
+            authScreen.classList.add('hidden');
+            appContainer.classList.remove('hidden');
+            document.getElementById('user-email-display').textContent = state.currentUser.email;
+            lucide.createIcons();
+            setupNavigation();
+            setupEventListeners();
+            loadInitialData();
+            document.querySelector('.nav-link[data-page="dashboard"]').click();
+        };
+
+        const setupEventListeners = () => {
+            setupCondoListeners();
+            setupProdutoListeners();
+            setupEstoqueListeners();
+            setupVendasListeners();
+            setupFinanceiroListeners();
+            setupRelatorioListeners();
+            setupCaixaListeners();
+        };
+
+        const loadInitialData = async () => {
+            await Promise.all([loadCondominios(), loadProdutos()]);
+            loadAllSelects();
+            loadDashboardMetrics();
+            loadReposicaoList();
+        };
+
+        const setupNavigation = () => {
+            const navLinks = document.querySelectorAll('.nav-link');
+            const pages = document.querySelectorAll('.page');
+            navLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const pageId = link.getAttribute('data-page');
+                    pages.forEach(p => p.classList.remove('active'));
+                    document.getElementById(`${pageId}-page`).classList.add('active');
+                    navLinks.forEach(l => l.classList.remove('bg-slate-700', 'text-white'));
+                    link.classList.add('bg-slate-700', 'text-white');
+                });
+            });
+        };
+
+        // ========== DATA LOADING & RENDERING ==========
+        async function loadCondominios() {
+            state.condos = await apiFetch('/api/condominios');
+            const list = document.getElementById('condominios-list');
+            list.innerHTML = state.condos.length === 0 ? `<p class="text-slate-400 col-span-full">Nenhum condomínio.</p>` :
+                state.condos.map(data => `
+                    <div class="bg-slate-800 p-5 rounded-lg">
+                        <h4 class="text-xl font-bold text-white">${data.nome}</h4>
+                        <p class="text-sm text-slate-400">${data.endereco}</p>
+                        <p class="text-sm text-slate-400">Responsável: ${data.responsavel}</p>
+                        <p class="text-sm text-primary-400 font-semibold mt-2">Investimento: ${formatCurrency(data.investimento)}</p>
+                        <div class="mt-4 flex gap-2">
+                            <button onclick="deleteCondominio(${data.id})" class="text-red-400 hover:text-red-300 p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        </div>
+                    </div>`).join('');
+            lucide.createIcons();
+        }
+
+        async function loadProdutos() {
+            state.products = await apiFetch('/api/produtos');
+            const tableBody = document.getElementById('produtos-table-body');
+            tableBody.innerHTML = state.products.length === 0 ? `<tr><td colspan="4" class="p-4 text-center text-slate-400">Nenhum produto.</td></tr>` :
+                state.products.map(data => `
+                    <tr class="border-b border-slate-700">
+                        <td class="p-4 text-white">${data.nome}</td>
+                        <td class="p-4 text-slate-300">${formatCurrency(data.preco_custo)}</td>
+                        <td class="p-4 text-slate-300">${formatCurrency(data.preco_venda)}</td>
+                        <td class="p-4">
+                            <button onclick="deleteProduto(${data.id})" class="text-red-400 hover:text-red-300 p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        </td>
+                    </tr>`).join('');
+            lucide.createIcons();
+        }
+
+        function loadAllSelects() {
+            const selects = document.querySelectorAll('#estoque-condo-select, #venda-condo-select, #financeiro-condo-select');
+            selects.forEach(select => {
+                const currentValue = select.value;
+                select.innerHTML = '<option value="">Selecione um condomínio</option>' +
+                    state.condos.map(condo => `<option value="${condo.id}">${condo.nome}</option>`).join('');
+                select.value = currentValue;
+            });
+        }
+
+        async function loadEstoqueForCondo(condoId) {
+            const estoque = await apiFetch(`/api/estoque/${condoId}`);
+            const tableBody = document.getElementById('estoque-table-body');
+            tableBody.innerHTML = estoque.length === 0 ? `<tr><td colspan="4" class="p-4 text-center text-slate-400">Nenhum produto no estoque.</td></tr>` :
+                estoque.map(data => `
+                    <tr class="border-b border-slate-700">
+                        <td class="p-4 text-white">${data.produtoNome}</td>
+                        <td class="p-4 text-slate-300">${data.quantidade}</td>
+                        <td class="p-4 text-slate-300">${data.limite_critico}</td>
+                        <td class="p-4 flex gap-2">
+                            <button onclick="reporEstoque(${data.id})" class="text-green-400 hover:text-green-300 p-1" title="Repor Estoque"><i data-lucide="plus-square" class="w-4 h-4"></i></button>
+                            <button onclick="deleteEstoqueItem(${data.id})" class="text-red-400 hover:text-red-300 p-1" title="Remover do Estoque"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        </td>
+                    </tr>`).join('');
+            lucide.createIcons();
+        }
+
+        async function loadReposicaoList() {
+            const items = await apiFetch('/api/reposicao');
+            document.getElementById('dashboard-reposicao').textContent = items.length;
+            const reposicaoList = document.getElementById('reposicao-list');
+            reposicaoList.innerHTML = items.length === 0 ? `<p class="text-slate-400">Nenhum item precisando de reposição.</p>` :
+                items.map(item => `
+                    <div class="bg-red-900/30 border border-red-500 p-4 rounded-lg flex items-center justify-between">
+                        <div>
+                            <p class="text-lg font-bold text-white">${item.produtoNome} - <span class="text-red-400">Restam ${item.quantidade}</span></p>
+                            <p class="text-sm text-slate-300">${item.condominioNome}</p>
+                            <p class="text-xs text-slate-400">${item.condominioEndereco}</p>
+                        </div>
+                        <i data-lucide="alert-triangle" class="text-red-400 w-8 h-8"></i>
+                    </div>`).join('');
+            lucide.createIcons();
+        }
+        
+        async function loadDashboardMetrics() {
+             document.getElementById('dashboard-condos').textContent = state.condos.length;
+             try {
+                const vendas = await apiFetch(`/api/relatorios/vendas?inicio=2000-01-01&fim=2999-12-31`);
+                document.getElementById('dashboard-vendas').textContent = vendas.reduce((acc, v) => acc + v.quantidade, 0);
+                document.getElementById('dashboard-lucro').textContent = formatCurrency(vendas.reduce((acc, v) => acc + v.lucro, 0));
+             } catch (e) { /* Ignore if no sales yet */ }
+        }
+        
+        async function loadCaixaData() {
+            try {
+                const data = await apiFetch('/api/caixa');
+                document.getElementById('caixa-saldo-atual').textContent = formatCurrency(data.saldo_atual);
+                const tableBody = document.getElementById('caixa-transacoes-table');
+                if (!tableBody) return;
+                tableBody.innerHTML = data.transacoes.length === 0 ? `<tr><td colspan="5" class="p-4 text-center text-slate-400">Nenhuma transação registrada.</td></tr>` :
+                    data.transacoes.map(t => {
+                        const isEntrada = t.tipo === 'entrada';
+                        const valorClass = isEntrada ? 'text-green-400' : 'text-red-400';
+                        const tipoText = isEntrada ? 'Entrada' : 'Saída';
+                        const valorDisplay = (isEntrada ? '+ ' : '- ') + formatCurrency(t.valor);
+                        return `
+                            <tr class="border-b border-slate-700">
+                                <td class="p-4 text-slate-300">${new Date(t.data_transacao).toLocaleString('pt-BR')}</td>
+                                <td class="p-4 font-semibold ${valorClass}">${tipoText}</td>
+                                <td class="p-4 text-white">${t.descricao}</td>
+                                <td class="p-4 text-slate-300">${t.responsavel || 'N/A'}</td>
+                                <td class="p-4 font-bold text-right ${valorClass}">${valorDisplay}</td>
+                            </tr>`;
+                    }).join('');
+            } catch (error) { console.error("Falha ao carregar dados do caixa:", error); }
+        }
+
+        // ========== EVENT LISTENERS & HANDLERS ==========
+        function setupCondoListeners() {
+            document.getElementById('add-condominio-btn').addEventListener('click', () => {
+                showModal(`
+                    <div class="bg-slate-800 p-8 rounded-lg w-full max-w-lg">
+                        <h3 class="text-2xl font-bold text-white mb-6">Adicionar Condomínio</h3>
+                        <form id="condo-form" class="space-y-4">
+                            <input type="text" id="condo-nome" placeholder="Nome do Condomínio" class="w-full bg-slate-700 p-2 rounded text-white" required>
+                            <input type="text" id="condo-responsavel" placeholder="Nome do Responsável" class="w-full bg-slate-700 p-2 rounded text-white" required>
+                            <input type="text" id="condo-endereco" placeholder="Endereço Completo" class="w-full bg-slate-700 p-2 rounded text-white" required>
+                            <input type="number" step="0.01" id="condo-investimento" placeholder="Valor Investido (ex: 1000.00)" class="w-full bg-slate-700 p-2 rounded text-white" required>
+                            <div class="flex gap-4 pt-4">
+                               <button type="button" onclick="hideModal()" class="w-full py-2 bg-slate-600 rounded">Cancelar</button>
+                               <button type="submit" class="w-full py-2 bg-primary-600 text-white rounded">Salvar</button>
+                            </div>
+                        </form>
+                    </div>`);
+                document.getElementById('condo-form').addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    await apiFetch('/api/condominios', {
+                        method: 'POST', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ nome: document.getElementById('condo-nome').value, responsavel: document.getElementById('condo-responsavel').value, endereco: document.getElementById('condo-endereco').value, investimento: parseFloat(document.getElementById('condo-investimento').value) })
+                    });
+                    hideModal(); showToast('Condomínio adicionado!'); await loadCondominios(); loadAllSelects();
+                });
+            });
+        }
+        window.deleteCondominio = async (id) => {
+            if (confirm('Tem certeza? Apagar um condomínio apagará todo o seu estoque e vendas relacionadas.')) {
+                await apiFetch(`/api/condominios/${id}`, { method: 'DELETE' });
+                showToast('Condomínio apagado.', 'error'); await loadCondominios(); loadAllSelects();
+            }
+        };
+
+        function setupProdutoListeners() {
+            document.getElementById('add-produto-btn').addEventListener('click', () => {
+                showModal(`
+                     <div class="bg-slate-800 p-8 rounded-lg w-full max-w-lg">
+                        <h3 class="text-2xl font-bold text-white mb-6">Adicionar Produto</h3>
+                        <form id="produto-form" class="space-y-4">
+                            <input type="text" id="produto-nome" placeholder="Nome do Produto" class="w-full bg-slate-700 p-2 rounded text-white" required>
+                            <input type="number" step="0.01" id="produto-custo" placeholder="Preço de Custo (ex: 2.50)" class="w-full bg-slate-700 p-2 rounded text-white" required>
+                            <input type="number" step="0.01" id="produto-venda" placeholder="Preço de Venda (ex: 5.00)" class="w-full bg-slate-700 p-2 rounded text-white" required>
+                            <div class="flex gap-4 pt-4">
+                               <button type="button" onclick="hideModal()" class="w-full py-2 bg-slate-600 rounded">Cancelar</button>
+                               <button type="submit" class="w-full py-2 bg-primary-600 text-white rounded">Salvar</button>
+                            </div>
+                        </form>
+                    </div>`);
+                 document.getElementById('produto-form').addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    await apiFetch('/api/produtos', {
+                        method: 'POST', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ nome: document.getElementById('produto-nome').value, precoCusto: parseFloat(document.getElementById('produto-custo').value), precoVenda: parseFloat(document.getElementById('produto-venda').value) })
+                    });
+                    hideModal(); showToast('Produto adicionado!'); await loadProdutos();
+                });
+            });
+        }
+        window.deleteProduto = async (id) => {
+            if (confirm('Tem certeza? O produto será removido de todos os estoques.')) {
+                await apiFetch(`/api/produtos/${id}`, { method: 'DELETE' });
+                showToast('Produto apagado.', 'error'); await loadProdutos();
+            }
+        };
+
+        function setupEstoqueListeners() {
+            document.getElementById('estoque-condo-select').addEventListener('change', (e) => {
+                const condoId = e.target.value;
+                document.getElementById('estoque-details').classList.toggle('hidden', !condoId);
+                if (condoId) {
+                    document.getElementById('estoque-condo-name').textContent = e.target.options[e.target.selectedIndex].text;
+                    loadEstoqueForCondo(condoId);
+                }
+            });
+            document.getElementById('add-produto-estoque-btn').addEventListener('click', () => {
+                let options = state.products.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
+                showModal(`
+                    <div class="bg-slate-800 p-8 rounded-lg w-full max-w-lg">
+                        <h3 class="text-2xl font-bold text-white mb-6">Adicionar Produto ao Estoque</h3>
+                        <form id="estoque-form" class="space-y-4">
+                            <select id="estoque-produto-select" class="w-full bg-slate-700 p-2 rounded text-white" required>${options}</select>
+                            <input type="number" id="estoque-quantidade" placeholder="Quantidade Inicial" class="w-full bg-slate-700 p-2 rounded text-white" required>
+                            <input type="number" id="estoque-limite" placeholder="Nível Crítico de Reposição" class="w-full bg-slate-700 p-2 rounded text-white" required>
+                            <div class="flex gap-4 pt-4">
+                                <button type="button" onclick="hideModal()" class="w-full py-2 bg-slate-600 rounded">Cancelar</button>
+                                <button type="submit" class="w-full py-2 bg-primary-600 text-white rounded">Adicionar</button>
+                            </div>
+                        </form>
+                    </div>`);
+                document.getElementById('estoque-form').addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const condoId = document.getElementById('estoque-condo-select').value;
+                    await apiFetch('/api/estoque', {
+                        method: 'POST', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ condominioId: parseInt(condoId), produtoId: parseInt(document.getElementById('estoque-produto-select').value), quantidade: parseInt(document.getElementById('estoque-quantidade').value), limiteCritico: parseInt(document.getElementById('estoque-limite').value) })
+                    });
+                    hideModal(); showToast('Estoque atualizado!'); await loadEstoqueForCondo(condoId);
+                });
+            });
+        }
+        window.reporEstoque = async (estoqueId) => {
+            const quantidade = prompt("Qual a quantidade a ser adicionada?", "10");
+            if (quantidade && !isNaN(quantidade) && quantidade > 0) {
+                await apiFetch(`/api/estoque/repor`, {
+                    method: 'PUT', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ estoqueId, quantidade: parseInt(quantidade) })
+                });
+                showToast('Estoque reposto!');
+                await loadEstoqueForCondo(document.getElementById('estoque-condo-select').value);
+                await loadReposicaoList();
+            }
+        };
+        window.deleteEstoqueItem = async (id) => {
+            if (confirm('Tem certeza?')) {
+                await apiFetch(`/api/estoque/${id}`, { method: 'DELETE' });
+                showToast('Item removido do estoque.', 'error');
+                await loadEstoqueForCondo(document.getElementById('estoque-condo-select').value);
+            }
+        };
+        
+        function setupVendasListeners() {
+            const condoSelect = document.getElementById('venda-condo-select');
+            const produtoSelect = document.getElementById('venda-produto-select');
+            condoSelect.addEventListener('change', async (e) => {
+                const condoId = e.target.value;
+                produtoSelect.innerHTML = '<option value="">Carregando...</option>';
+                produtoSelect.disabled = true;
+                if (condoId) {
+                    const estoque = await apiFetch(`/api/estoque/${condoId}`);
+                    produtoSelect.innerHTML = '<option value="">Selecione um produto</option>' +
+                        estoque.filter(item => item.quantidade > 0).map(item => `<option value="${item.produto_id}">${item.produtoNome} (Disp: ${item.quantidade})</option>`).join('');
+                    produtoSelect.disabled = false;
+                }
+            });
+            document.getElementById('registrar-venda-btn').addEventListener('click', async () => {
+                const condoId = condoSelect.value, produtoId = produtoSelect.value, quantidade = parseInt(document.getElementById('venda-quantidade-input').value);
+                if (!condoId || !produtoId || !quantidade) return showToast('Preencha todos os campos.', 'error');
+                try {
+                    await apiFetch('/api/vendas', {
+                        method: 'POST', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ condominioId: parseInt(condoId), produtoId: parseInt(produtoId), quantidade: quantidade })
+                    });
+                    showToast('Venda registrada!');
+                    document.getElementById('venda-quantidade-input').value = 1;
+                    condoSelect.dispatchEvent(new Event('change'));
+                    await Promise.all([loadReposicaoList(), loadDashboardMetrics()]);
+                } catch(error) {}
+            });
+        }
+
+        function setupFinanceiroListeners() {
+            const condoSelect = document.getElementById('financeiro-condo-select');
+            condoSelect.addEventListener('change', async (e) => {
+                state.currentFinanceCondoId = e.target.value;
+                const financeiroContent = document.getElementById('financeiro-content');
+                financeiroContent.classList.toggle('hidden', !state.currentFinanceCondoId);
+                if (state.currentFinanceCondoId) {
+                    const data = await apiFetch(`/api/financeiro/${state.currentFinanceCondoId}`);
+                    const investRestanteEl = document.getElementById('fin-investimento-restante');
+                    if (data.investimentoRestante <= 0) {
+                        investRestanteEl.textContent = "Recuperado!";
+                        investRestanteEl.classList.remove('text-white');
+                        investRestanteEl.classList.add('text-green-400');
+                    } else {
+                        investRestanteEl.textContent = formatCurrency(data.investimentoRestante);
+                        investRestanteEl.classList.add('text-white');
+                        investRestanteEl.classList.remove('text-green-400');
+                    }
+                    document.getElementById('fin-investimento-original').textContent = `de ${formatCurrency(data.investimentoInicial)}`;
+                    document.getElementById('fin-faturamento').textContent = formatCurrency(data.faturamento);
+                    document.getElementById('fin-despesas').textContent = formatCurrency(data.despesas);
+                    const progressBar = document.getElementById('fin-despesas-progress');
+                    const progressStatus = document.getElementById('fin-despesas-status');
+                    if (data.despesas > 0) {
+                        let progressPercent = (data.lucroBruto / data.despesas) * 100;
+                        if (progressPercent >= 100) {
+                            progressPercent = 100;
+                            progressBar.classList.remove('bg-amber-500');
+                            progressBar.classList.add('bg-green-500');
+                            progressStatus.textContent = "Despesas cobertas!";
+                        } else {
+                            progressBar.classList.add('bg-amber-500');
+                            progressBar.classList.remove('bg-green-500');
+                            progressStatus.textContent = `${progressPercent.toFixed(0)}% coberto`;
+                        }
+                        progressBar.style.width = `${progressPercent}%`;
+                    } else {
+                        progressBar.style.width = '100%';
+                        progressBar.classList.add('bg-green-500');
+                        progressStatus.textContent = "Sem despesas fixas.";
+                    }
+                    document.getElementById('fin-lucro-liquido').textContent = formatCurrency(data.lucroLiquido);
+                    document.getElementById('fin-comissao').textContent = formatCurrency(data.comissao);
+                    updateFinanceChart(data);
+                    lucide.createIcons();
+                }
+            });
+        }
+        window.editarDespesas = async () => {
+            if (!state.currentFinanceCondoId) return showToast('Selecione um condomínio.', 'error');
+            const valorAtual = parseFloat(document.getElementById('fin-despesas').textContent.replace(/[^\d,-]/g, '').replace(',', '.'));
+            const novoValorStr = prompt("Digite o novo valor para as Despesas Fixas:", valorAtual);
+            if (novoValorStr !== null && !isNaN(novoValorStr)) {
+                await apiFetch(`/api/condominios/${state.currentFinanceCondoId}/despesas`, {
+                    method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ valor: parseFloat(novoValorStr) })
+                });
+                showToast('Despesas atualizadas!');
+                document.getElementById('financeiro-condo-select').dispatchEvent(new Event('change'));
+            }
+        };
+        
+        function updateFinanceChart(data) {
+            const ctx = document.getElementById('financeiro-chart').getContext('2d');
+            if(state.financeChart) state.financeChart.destroy();
+            state.financeChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Faturamento', 'Lucro Bruto', 'Despesas', 'Lucro Líquido'],
+                    datasets: [{
+                        label: 'Análise Financeira', data: [data.faturamento, data.lucroBruto, data.despesas, data.lucroLiquido],
+                        backgroundColor: ['rgba(251, 146, 60, 0.6)','rgba(249, 115, 22, 0.6)','rgba(239, 68, 68, 0.6)','rgba(74, 222, 128, 0.6)'],
+                        borderColor: ['rgba(251, 146, 60, 1)','rgba(249, 115, 22, 1)','rgba(239, 68, 68, 1)','rgba(74, 222, 128, 1)'], borderWidth: 1
+                    }]
+                }, options: { scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } }
+            });
+        }
+        
+        function setupRelatorioListeners() {
+             document.getElementById('gerar-relatorio-btn').addEventListener('click', async () => {
+                const inicio = document.getElementById('relatorio-data-inicio').value;
+                const fim = document.getElementById('relatorio-data-fim').value;
+                if (!inicio || !fim) return showToast('Selecione um período.', 'error');
+                try {
+                    const data = await apiFetch(`/api/relatorios/vendas?inicio=${inicio}&fim=${fim}`);
+                    if(data.length === 0) return showToast('Nenhuma venda encontrada no período.', 'error');
+                    const dataToExport = data.map(v => ({
+                        "Data": new Date(v.data_venda).toLocaleString('pt-BR'), "Condomínio": v.condominioNome, "Produto": v.produtoNome, "Quantidade": v.quantidade,
+                        "Faturamento (R$)": v.preco_venda_total, "Custo (R$)": v.preco_custo_total, "Lucro (R$)": v.lucro,
+                    }));
+                    const ws = XLSX.utils.json_to_sheet(dataToExport);
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, "Vendas");
+                    XLSX.writeFile(wb, `Relatorio_Vendas_${inicio}_a_${fim}.xlsx`);
+                    showToast('Relatório gerado!');
+                } catch(e) {}
+             });
+        }
+
+        function setupCaixaListeners() {
+            document.getElementById('add-retirada-btn').addEventListener('click', () => {
+                showModal(`
+                    <div class="bg-slate-800 p-8 rounded-lg w-full max-w-lg">
+                        <h3 class="text-2xl font-bold text-white mb-6">Registrar Retirada / Saída do Caixa</h3>
+                        <form id="retirada-form" class="space-y-4">
+                            <input type="number" step="0.01" id="retirada-valor" placeholder="Valor da Retirada" class="w-full bg-slate-700 p-2 rounded text-white" required>
+                            <input type="text" id="retirada-descricao" placeholder="Descrição (ex: Pagamento de conta, Pró-labore)" class="w-full bg-slate-700 p-2 rounded text-white" required>
+                            <input type="text" id="retirada-responsavel" placeholder="Destino / Responsável (opcional)" class="w-full bg-slate-700 p-2 rounded text-white">
+                            <div class="flex gap-4 pt-4">
+                               <button type="button" onclick="hideModal()" class="w-full py-2 bg-slate-600 rounded">Cancelar</button>
+                               <button type="submit" class="w-full py-2 bg-red-600 text-white rounded">Confirmar Retirada</button>
+                            </div>
+                        </form>
+                    </div>`);
+                document.getElementById('retirada-form').addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    await apiFetch('/api/caixa/transacao', {
+                        method: 'POST', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ tipo: 'saida', valor: parseFloat(document.getElementById('retirada-valor').value), descricao: document.getElementById('retirada-descricao').value, responsavel: document.getElementById('retirada-responsavel').value })
+                    });
+                    hideModal(); showToast('Retirada registrada!'); loadCaixaData();
+                });
+            });
+            document.querySelector('.nav-link[data-page="caixa"]').addEventListener('click', loadCaixaData);
+        }
+        
+        // ========== ATTACH INITIAL EVENT LISTENERS ==========
+        document.getElementById('login-btn').addEventListener('click', handleLogin);
+        document.getElementById('register-btn').addEventListener('click', handleRegister);
+        document.getElementById('logout-btn').addEventListener('click', handleLogout);
+
+    });
+    </script>
+</body>
+</html>
