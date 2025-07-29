@@ -461,6 +461,5 @@ def webhook_mercadopago():
     # Responde ao Mercado Pago que recebemos a notificação com sucesso
     return jsonify({'status': 'ok'}), 200
 
-if __name__ == '__main__':
-    # Usar host='0.0.0.0' torna o servidor acessível na sua rede local
+if name == 'main':
     app.run(debug=True, host='0.0.0.0', port=5000)
